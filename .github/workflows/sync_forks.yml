@@ -1,0 +1,34 @@
+name: sync-forks
+on:
+  schedule:
+    - cron: "35 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v5
+        with:
+          github-token: ${{ secrets.PA_TOKEN }}
+          script: |
+            console.log(context);
+            const org = process.env.GITHUB_REPOSITORY_OWNER;
+            github.paginate(
+              github.rest.repos.listForOrg, {
+                org: org,
+                type: "forks"
+              }
+            )
+            .then((repos) => {
+              for (const repo of repos) {
+                const project = repo.name;
+                const branch = repo.default_branch;
+                console.log("Updating: " + repo.full_name);
+                github.rest.repos.mergeUpstream({
+                  owner: org,
+                  repo: project,
+                  branch: branch,
+                });
+              }
+            });
